@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Erie Vital Signs — KPI Dashboard</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --ink:#0b1220;
+      --muted:#667085;
+      --blue:#2563eb;
+      --violet:#7c3aed;
+      --cyan:#06b6d4;
+      --green:#22c55e;
+      --orange:#f97316;
+      --pink:#ec4899;
+    }
+
+    html{ scroll-behavior:smooth; }
+    body{
+      font-family: Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      background:
+        radial-gradient(1200px 650px at 10% 0%, rgba(37,99,235,0.16), transparent 58%),
+        radial-gradient(1000px 650px at 92% 8%, rgba(124,58,237,0.14), transparent 55%),
+        radial-gradient(900px 650px at 55% 95%, rgba(6,182,212,0.12), transparent 60%),
+        linear-gradient(180deg, #ffffff 0%, #f7f8fb 55%, #ffffff 100%);
+      min-height: 100vh;
+    }
+
+    .no-scrollbar::-webkit-scrollbar{ display:none; }
+    .no-scrollbar{ -ms-overflow-style:none; scrollbar-width:none; }
+
+    .glass{
+      background: rgba(255,255,255,0.88);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.9) inset,
+        0 18px 60px rgba(2, 6, 23, 0.08);
+    }
+
+    .pill{
+      border: 1px solid rgba(15,23,42,0.10);
+      background: rgba(255,255,255,0.78);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      border-radius: 999px;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.85) inset;
+    }
+
+    .card{
+      position: relative;
+      background: rgba(255,255,255,0.94);
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      border-radius: 20px;
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.9) inset,
+        0 20px 60px rgba(2, 6, 23, 0.10);
+      transition: transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s ease;
+      transform: translateZ(0);
+      overflow: hidden;
+    }
+    
+    @media (min-width: 768px) {
+      .card {
+        border-radius: 28px;
+      }
+    }
+
+    .card::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      padding:1px;
+      border-radius: 20px;
+      background: linear-gradient(135deg,
+        rgba(37,99,235,0.45),
+        rgba(124,58,237,0.42),
+        rgba(6,182,212,0.38),
+        rgba(34,197,94,0.32),
+        rgba(249,115,22,0.25)
+      );
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+              mask-composite: exclude;
+      pointer-events:none;
+      opacity: .55;
+    }
+    
+    @media (min-width: 768px) {
+      .card::before {
+        border-radius: 28px;
+      }
+    }
+
+    .card:hover{
+      transform: translateY(-3px);
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.9) inset,
+        0 26px 85px rgba(2, 6, 23, 0.14);
+    }
+
+    .hero-mesh{
+      background:
+        radial-gradient(1100px 560px at 15% 5%, rgba(37,99,235,0.18), transparent 62%),
+        radial-gradient(1000px 560px at 85% 10%, rgba(124,58,237,0.16), transparent 60%),
+        radial-gradient(900px 560px at 55% 95%, rgba(6,182,212,0.14), transparent 62%);
+    }
+
+    .gradient-line{
+      background: linear-gradient(90deg,
+        rgba(37,99,235,0),
+        rgba(37,99,235,0.28),
+        rgba(6,182,212,0.22),
+        rgba(124,58,237,0.20),
+        rgba(37,99,235,0)
+      );
+      height: 1px;
+    }
+
+    .accent{
+      width: 6px;
+      border-radius: 999px;
+      box-shadow: 0 12px 30px rgba(2,6,23,0.10);
+      flex-shrink: 0;
+    }
+    
+    @media (min-width: 640px) {
+      .accent {
+        width: 8px;
+      }
+    }
+    
+    @media (min-width: 768px) {
+      .accent {
+        width: 10px;
+      }
+    }
+
+    .glow{
+      position:absolute;
+      right:-80px;
+      bottom:-80px;
+      width:200px;
+      height:200px;
+      filter: blur(40px);
+      opacity:0;
+      transition: opacity .5s ease;
+      pointer-events:none;
+    }
+    
+    @media (min-width: 768px) {
+      .glow {
+        right:-120px;
+        bottom:-120px;
+        width:320px;
+        height:320px;
+        filter: blur(55px);
+      }
+    }
+
+    .card:hover .glow{ opacity:.6; }
+
+    a:focus-visible{
+      outline:none;
+      box-shadow: 0 0 0 4px rgba(37,99,235,0.18);
+      border-radius: 18px;
+    }
+
+    /* Mobile bottom nav */
+    .mobile-nav {
+      display: flex;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(15, 23, 42, 0.08);
+      padding: 8px 4px;
+      z-index: 50;
+      overflow-x: auto;
+      gap: 2px;
+    }
+    
+    @media (min-width: 1024px) {
+      .mobile-nav {
+        display: none;
+      }
+    }
+
+    .mobile-nav-item {
+      flex: 1;
+      min-width: 60px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 4px;
+      border-radius: 12px;
+      font-size: 9px;
+      font-weight: 600;
+      color: #64748b;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .mobile-nav-item:hover,
+    .mobile-nav-item:active {
+      background: rgba(37, 99, 235, 0.08);
+      color: #2563eb;
+    }
+
+    .mobile-nav-item i {
+      width: 20px;
+      height: 20px;
+      margin-bottom: 2px;
+    }
+
+    /* Desktop sidebar */
+    .desktop-sidebar {
+      display: none;
+    }
+    
+    @media (min-width: 1024px) {
+      .desktop-sidebar {
+        display: block;
+        width: 280px;
+        flex-shrink: 0;
+        padding: 24px;
+      }
+    }
+    
+    @media (min-width: 1280px) {
+      .desktop-sidebar {
+        width: 305px;
+      }
+    }
+
+    /* Main content padding for mobile nav */
+    .main-content {
+      padding-bottom: 100px;
+    }
+    
+    @media (min-width: 1024px) {
+      .main-content {
+        padding-bottom: 24px;
+      }
+    }
+
+    /* Responsive card grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    
+    @media (min-width: 480px) {
+      .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+      }
+    }
+    
+    @media (min-width: 768px) {
+      .kpi-grid {
+        gap: 20px;
+      }
+    }
+    
+    @media (min-width: 1024px) {
+      .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 24px;
+      }
+    }
+    
+    @media (min-width: 1280px) {
+      .kpi-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    /* Card responsive padding */
+    .card-inner {
+      padding: 16px;
+    }
+    
+    @media (min-width: 480px) {
+      .card-inner {
+        padding: 20px;
+      }
+    }
+    
+    @media (min-width: 768px) {
+      .card-inner {
+        padding: 28px;
+      }
+    }
+
+    /* Responsive text sizes */
+    .kpi-value {
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    
+    @media (min-width: 480px) {
+      .kpi-value {
+        font-size: 32px;
+      }
+    }
+    
+    @media (min-width: 768px) {
+      .kpi-value {
+        font-size: 40px;
+      }
+    }
+    
+    @media (min-width: 1024px) {
+      .kpi-value {
+        font-size: 48px;
+      }
+    }
+
+    .kpi-title {
+      font-size: 15px;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+    
+    @media (min-width: 480px) {
+      .kpi-title {
+        font-size: 16px;
+      }
+    }
+    
+    @media (min-width: 768px) {
+      .kpi-title {
+        font-size: 18px;
+      }
+    }
+    
+    @media (min-width: 1024px) {
+      .kpi-title {
+        font-size: 20px;
+      }
+    }
+
+    .kpi-category {
+      font-size: 9px;
+      letter-spacing: 0.1em;
+    }
+    
+    @media (min-width: 480px) {
+      .kpi-category {
+        font-size: 10px;
+      }
+    }
+    
+    @media (min-width: 768px) {
+      .kpi-category {
+        font-size: 11px;
+      }
+    }
+
+    .kpi-unit {
+      font-size: 12px;
+    }
+    
+    @media (min-width: 768px) {
+      .kpi-unit {
+        font-size: 14px;
+      }
+    }
+
+    .kpi-year-label {
+      font-size: 9px;
+    }
+    
+    @media (min-width: 480px) {
+      .kpi-year-label {
+        font-size: 10px;
+      }
+    }
+    
+    @media (min-width: 768px) {
+      .kpi-year-label {
+        font-size: 11px;
+      }
+    }
+
+    /* Section header responsive */
+    .section-title {
+      font-size: 24px;
+    }
+    
+    @media (min-width: 480px) {
+      .section-title {
+        font-size: 28px;
+      }
+    }
+    
+    @media (min-width: 768px) {
+      .section-title {
+        font-size: 32px;
+      }
+    }
+    
+    @media (min-width: 1024px) {
+      .section-title {
+        font-size: 40px;
+      }
+    }
+
+    .section-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+    }
+    
+    @media (min-width: 480px) {
+      .section-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 12px;
+      }
+    }
+    
+    @media (min-width: 768px) {
+      .section-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 16px;
+      }
+    }
+
+    /* Hero responsive */
+    .hero-title {
+      font-size: 28px;
+      line-height: 1.1;
+    }
+    
+    @media (min-width: 480px) {
+      .hero-title {
+        font-size: 36px;
+      }
+    }
+    
+    @media (min-width: 768px) {
+      .hero-title {
+        font-size: 48px;
+      }
+    }
+    
+    @media (min-width: 1024px) {
+      .hero-title {
+        font-size: 60px;
+      }
+    }
+
+    .hero-subtitle {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    
+    @media (min-width: 480px) {
+      .hero-subtitle {
+        font-size: 16px;
+      }
+    }
+    
+    @media (min-width: 768px) {
+      .hero-subtitle {
+        font-size: 20px;
+      }
+    }
+    
+    @media (min-width: 1024px) {
+      .hero-subtitle {
+        font-size: 24px;
+      }
+    }
+
+    /* Badge responsive */
+    .badge-responsive {
+      font-size: 9px;
+      padding: 4px 8px;
+    }
+    
+    @media (min-width: 480px) {
+      .badge-responsive {
+        font-size: 10px;
+        padding: 5px 10px;
+      }
+    }
+    
+    @media (min-width: 768px) {
+      .badge-responsive {
+        font-size: 11px;
+        padding: 6px 12px;
+      }
+    }
+  </style>
+</head>
+
+<body class="min-h-screen selection:bg-blue-100/70">
+
+  <!-- Texture overlay -->
+  <div class="pointer-events-none fixed inset-0 opacity-[0.05] mix-blend-multiply"
+       style="background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22140%22 height=%22140%22%3E%3Cfilter id=%22n%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22140%22 height=%22140%22 filter=%22url(%23n)%22 opacity=%220.5%22/%3E%3C/svg%3E');">
+  </div>
+
+  <div class="flex min-h-screen">
+    
+    <!-- Desktop Sidebar -->
+    <aside class="desktop-sidebar">
+      <div class="glass rounded-[28px] h-full flex flex-col overflow-hidden sticky top-6" style="max-height: calc(100vh - 48px);">
+        <div class="p-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-[15px] font-semibold tracking-tight text-slate-900">
+                Erie<span class="text-slate-500">Vitality</span>
+              </div>
+              <div class="text-xs text-slate-600 font-medium mt-0.5">KPI Dashboard</div>
+            </div>
+          </div>
+
+          <div class="mt-7">
+            <a href="https://erievitalsigns-eriecopa.hub.arcgis.com/" target="_self"
+               class="group relative overflow-hidden flex items-center gap-4 px-4 py-3 rounded-2xl text-white transition shadow-sm"
+               style="background:linear-gradient(135deg, rgba(37,99,235,1), rgba(124,58,237,0.95));">
+              <span class="absolute inset-0 opacity-0 group-hover:opacity-100 transition"
+                    style="background:linear-gradient(135deg, rgba(6,182,212,1), rgba(37,99,235,0.95));"></span>
+              <i data-lucide="home" class="relative z-10 w-5 h-5 opacity-95"></i>
+              <span class="relative z-10 font-semibold text-sm">Hub Home</span>
+              <span class="relative z-10 ml-auto text-xs opacity-70 group-hover:opacity-100 transition">↗</span>
+            </a>
+          </div>
+
+          <div class="my-6 gradient-line"></div>
+          <nav id="navLinks" class="space-y-1.5 overflow-y-auto no-scrollbar" style="max-height: calc(100vh - 320px);"></nav>
+        </div>
+
+        <div class="mt-auto p-6 border-t border-black/5">
+          <div class="text-[11px] text-slate-600 font-semibold leading-relaxed">
+            Shows <b>Current</b> + <b>% change</b><br/>
+            Travel Spending: no compare
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto no-scrollbar main-content">
+      
+      <!-- Hero -->
+      <header class="hero-mesh pt-8 sm:pt-10 md:pt-14 lg:pt-16 pb-6 sm:pb-8 md:pb-10 px-4 sm:px-6 md:px-10">
+        <div class="max-w-7xl mx-auto">
+          <div class="card card-inner bg-white/88">
+            <div class="absolute -top-44 -right-44 w-[520px] h-[520px] blur-3xl opacity-55 hidden sm:block"
+                 style="background:radial-gradient(circle at 30% 30%, rgba(37,99,235,0.40), transparent 60%);"></div>
+
+            <div class="flex flex-col gap-6 relative">
+              <div>
+                <div class="pill inline-flex items-center gap-2 px-3 py-1.5 text-[10px] sm:text-xs font-semibold text-slate-700">
+                  <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+                  Current + % change (YoY)
+                </div>
+                <h1 class="mt-4 sm:mt-5 hero-title font-semibold tracking-tight text-slate-900">
+                  Erie Vital Signs.
+                </h1>
+                <p class="mt-3 sm:mt-4 hero-subtitle font-medium text-slate-600 max-w-3xl leading-relaxed">
+                  Past values are hidden. Cards show current value + percentage change only.
+                </p>
+              </div>
+
+              <div class="flex flex-wrap gap-3">
+                <a href="#economy"
+                   class="pill px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-slate-900 hover:bg-white/90 transition">
+                  Start at Economy
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Sections -->
+      <div class="px-4 sm:px-6 md:px-10 pb-8">
+        <div class="max-w-7xl mx-auto space-y-16 sm:space-y-20 md:space-y-24" id="sections"></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Mobile Bottom Navigation -->
+  <nav class="mobile-nav no-scrollbar" id="mobileNav"></nav>
+
+  <!-- DATA -->
+  <script id="dataset" type="text/plain">
+Category	Indicator Name	Past year Value	Unit / Description	Past Year(s)	Current Year value	Current Year
+Economy	Annual Job Growth	1.83	% (All sectors)	2022	0.47	2025
+Economy	Median Annual Earnings	49,868	USD	2022	50,100	2024
+Economy	Unemployment Rate	5.5	%	2022	4.6	2025
+Economy	Poverty Rate	15.4	% of Erie County	2022	14.9	2024
+Economy	Income Gap: White vs Persons of Color	43.9	% of avg. White income	2020	41	2024
+Economy	Family Sustaining Wage Jobs	51.8	% of all jobs	2020	58	2024
+Economy	Travel Spending per Household	1,711	USD per household	2024		
+Business	Business Establishments	6,753	Count	2023	6753	2024
+Business	Loans to Small Businesses	50.9	Million USD	2020	78.4	2025
+Business	Largest Industry Share	10.44	% (Insurance Carriers)	2023	20	2024
+Business	Highest Growth Industry	7.4	% growth (Elderly/Disabled Services)	2020	9.8	2025
+Business	Arts, Entertainment & Recreation Employment	2.2	% of total jobs	2023	2.6	2025
+Talent	Net Migration (Ages 25–64)	-1,135	People	2023	-296	2024
+Talent	Employed in Advanced Industries	2.7	% of workforce	2020	9.5	2024
+Talent	Bachelor's Degree or Higher	29.6	% of population	2022	29.3	2024
+Talent	Workforce Participation Rate	59.8	%	2022	59	2025
+Talent	Female Workforce	49.31	% of workforce	2022	48.1	2025
+Education	3rd Grade Reading Proficiency	53.89	%	2023	49.5	2025
+Education	3rd Grade Math Proficiency	55.05	%	2023	53.6	2025
+Education	8th Grade Reading Proficiency	55.05	%	2023	49.3	2025
+Education	8th Grade Math Proficiency	32.72	%	2023	30.5	2025
+Education	High School Graduation Rate	90.8	%	2019	87.2	2025
+Education	STEM Degree Graduates	22.4	% of graduates	2019	27.8	2025
+Education	University Graduates	6,140	Count	2019	5145	2025
+Community	Voter Participation Rate	23.2	% (Municipal election)	2019	43.1	2025
+Community	Arts, Entertainment & Recreation Establishments	116	Count	2020	126	2025
+Community	Average Daily Commute	19.9	Minutes	2022	19.5	2025
+Community	Violent Crime	4.96	Crimes per 1,000 residents	2020	2.98	2025
+Community	Property Crime	6.8	Crimes per 1,000 residents	2020	16.45	2025
+Community	Drug-Related Crime	2.48	Crimes per 1,000 residents	2020	3.12	2025
+Community	Residents per Municipal Park	1,594	People	2020	1718	2025
+Community	Eligible Voters Change	-0.56	% (18+ population)	2020	0.61	2025
+Community	Voter Registration	91.3	% of eligible voters	2019	90.1	2025
+Community	Recycling	0.31	Tons per capita	2018	0.47	2025
+Community	Solid Waste	0.86	Tons per capita	2018	0.74	2025
+Livability	Median Rent Cost	851	USD	2022	1065	2025
+Livability	Median Home Sale Price	110,250	USD	2019	200,000	2025
+Livability	Housing Costs as % of Spending	30.9	% of households	2020	33.4	2025
+Livability	Days of Good Air Quality	240	Days	2023	226	2025
+Livability	Access to 1GB+ Broadband	1.27	% of residents	2020	94.80%	2025
+Livability	Homeownership Rate	67.97	%	2022	68.3	2025
+Health	Obesity Rate	35	% of population	2020–2022	36.9	2024-2025
+Health	Physical Activity (Leisure)	75	% of population	2020–2022	73.1	2024-2025
+Health	Asthma Rate	8	% of population	2018–2020	10.2	2024-2025
+Health	Insured with Healthcare	92	% of population	2020–2022	94.2	2024-2025
+Health	Couldn't Afford Doctor Visit	5	% of population	2020–2022	9.4	2024-2025
+Health	Teen Pregnancy	5.3	% (Females 15–19)	2020–2022	13.5	2024-2025
+Health	Infant Mortality	8.2	Deaths per 1,000 births	2020–2022	7.7	2024-2025
+Health	Low Birth Weight Infants	9.4	% of births	2020–2022	9.3	2024-2025
+Health	Mortality Rate	929	Deaths per 100k residents	2020–2022	880.5	2024-2025
+Health	Cancer Mortality	165	Deaths per 100k residents	2020–2022	162	2024-2025
+Health	Heart Disease Mortality	173	Deaths per 100k residents	2020–2022	169.7	2024-2025
+Health	Diabetes	12	% of population	2020–2022	13.4	2024-2025
+Health	Adult Smokers	19	% of population	2020–2022	17.2	2024-2025
+Health	Smoking During Pregnancy	13.3	% of pregnancies	2020–2022	12.7	2024-2025
+Health	Chronic Alcohol Consumption	7	% of population	2020–2022	8.1	2024-2025
+Health	Prenatal Care (1st Trimester)	82.7	% of pregnancies	2020–2022	73.1	2024-2025
+Demographics	Foreign-Born Population	4.38	% of total population	2022	4.4	2024
+Demographics	Total Population	266,638	People	2024	266638	2024
+Demographics	Median Age	39.9	Years	2022	40.1	2024
+Demographics	Population of Color	13.5	%	2020	17.8	2024
+Demographics	Median Household Income	59,396	USD	2022	61476	2024
+Demographics	Average Household Size	2.15	People per household	2020	2.33	2024
+Demographics	Single-Parent Families	41.3	% of families with children	2020	40.8	2024
+  </script>
+
+  <script>
+    // helpers
+    const slug = (s) => String(s || "").toLowerCase().replace(/['']/g,"").replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"");
+
+    const parseNumber = (v) => {
+      if (v === null || v === undefined) return null;
+      const s = String(v).trim();
+      if (!s) return null;
+      const clean = s.replace(/,/g,"").replace(/%/g,"");
+      const n = Number(clean);
+      return Number.isFinite(n) ? n : null;
+    };
+
+    const looksPct = (unit, raw) => /%/.test(unit || "") || String(raw||"").includes("%");
+    const looksUSD = (unit) => /usd|\$/i.test(unit || "");
+    const looksMillion = (unit) => /million/i.test(unit || "");
+
+    const fmt = (n, unit) => {
+      if (n === null) return "TBD";
+      const money = looksUSD(unit) || looksMillion(unit);
+      const isIntish = Math.abs(n - Math.round(n)) < 1e-9;
+      const opts = money ? { maximumFractionDigits: 0 } : { maximumFractionDigits: isIntish ? 0 : 2 };
+      return new Intl.NumberFormat(undefined, opts).format(n);
+    };
+
+    const CAT_ACCENTS = {
+      Economy:      { grad:"linear-gradient(180deg, rgba(37,99,235,1), rgba(124,58,237,1))", glow:"radial-gradient(circle at 30% 30%, rgba(37,99,235,0.40), transparent 60%)" },
+      Business:     { grad:"linear-gradient(180deg, rgba(249,115,22,1), rgba(236,72,153,1))", glow:"radial-gradient(circle at 30% 30%, rgba(249,115,22,0.38), transparent 60%)" },
+      Talent:       { grad:"linear-gradient(180deg, rgba(34,197,94,1), rgba(6,182,212,1))", glow:"radial-gradient(circle at 30% 30%, rgba(34,197,94,0.34), transparent 60%)" },
+      Education:    { grad:"linear-gradient(180deg, rgba(124,58,237,1), rgba(236,72,153,1))", glow:"radial-gradient(circle at 30% 30%, rgba(124,58,237,0.34), transparent 60%)" },
+      Community:    { grad:"linear-gradient(180deg, rgba(6,182,212,1), rgba(37,99,235,1))", glow:"radial-gradient(circle at 30% 30%, rgba(6,182,212,0.34), transparent 60%)" },
+      Livability:   { grad:"linear-gradient(180deg, rgba(34,197,94,1), rgba(249,115,22,1))", glow:"radial-gradient(circle at 30% 30%, rgba(34,197,94,0.30), transparent 60%)" },
+      Health:       { grad:"linear-gradient(180deg, rgba(236,72,153,1), rgba(249,115,22,1))", glow:"radial-gradient(circle at 30% 30%, rgba(236,72,153,0.30), transparent 60%)" },
+      Demographics: { grad:"linear-gradient(180deg, rgba(124,58,237,1), rgba(37,99,235,1))", glow:"radial-gradient(circle at 30% 30%, rgba(37,99,235,0.30), transparent 60%)" },
+      Other:        { grad:"linear-gradient(180deg, rgba(148,163,184,1), rgba(100,116,139,1))", glow:"radial-gradient(circle at 30% 30%, rgba(148,163,184,0.28), transparent 60%)" }
+    };
+
+    const badge = (type, text) => {
+      const base = "pill badge-responsive font-extrabold whitespace-nowrap";
+      const map = {
+        up:   "text-emerald-800 bg-emerald-50/90 border-emerald-100",
+        down: "text-rose-800 bg-rose-50/90 border-rose-100",
+        flat: "text-slate-700 bg-white/70 border-black/10",
+        miss: "text-amber-800 bg-amber-50/90 border-amber-100",
+        none: "text-slate-700 bg-white/70 border-black/10",
+      };
+      return `<span class="${base} ${map[type] || map.flat}">${text}</span>`;
+    };
+
+    const iconForCategory = (cat) => {
+      const c = String(cat || "").toLowerCase();
+      if (c.includes("economy")) return "trending-up";
+      if (c.includes("business")) return "briefcase";
+      if (c.includes("talent")) return "graduation-cap";
+      if (c.includes("education")) return "book-open";
+      if (c.includes("community")) return "users-2";
+      if (c.includes("livability")) return "map";
+      if (c.includes("health")) return "heart";
+      if (c.includes("demographics")) return "pie-chart";
+      return "circle";
+    };
+
+    // parse tsv
+    const tsv = document.getElementById("dataset").textContent.trim();
+    const lines = tsv.split(/\r?\n/).filter(Boolean);
+    const headers = lines[0].split("\t").map(h => h.trim());
+    const rows = lines.slice(1).map(line => {
+      const cols = line.split("\t");
+      const obj = {};
+      headers.forEach((h,i) => obj[h] = (cols[i] ?? "").trim());
+      return obj;
+    });
+
+    // group categories
+    const byCat = new Map();
+    for (const r of rows) {
+      const cat = r["Category"] || "Other";
+      if (!byCat.has(cat)) byCat.set(cat, []);
+      byCat.get(cat).push(r);
+    }
+
+    const preferredOrder = ["Economy","Business","Talent","Education","Community","Livability","Health","Demographics"];
+    const categories = Array.from(byCat.keys()).sort((a,b) => {
+      const ia = preferredOrder.indexOf(a);
+      const ib = preferredOrder.indexOf(b);
+      if (ia === -1 && ib === -1) return a.localeCompare(b);
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+      return ia - ib;
+    });
+
+    // Desktop nav
+    const nav = document.getElementById("navLinks");
+    nav.innerHTML = categories.map(cat => {
+      const id = slug(cat);
+      const icon = iconForCategory(cat);
+      const acc = CAT_ACCENTS[cat] || CAT_ACCENTS.Other;
+      return `
+        <a href="#${id}" class="group flex items-center gap-4 px-4 py-3 rounded-2xl text-slate-700
+           hover:bg-white/70 hover:text-slate-900 transition">
+          <span class="w-2.5 h-2.5 rounded-full shadow-sm flex-shrink-0" style="background:${acc.grad};"></span>
+          <i data-lucide="${icon}" class="w-5 h-5 opacity-85 group-hover:opacity-100 transition flex-shrink-0"></i>
+          <span class="font-semibold text-sm truncate">${cat}</span>
+        </a>
+      `;
+    }).join("");
+
+    // Mobile nav
+    const mobileNav = document.getElementById("mobileNav");
+    mobileNav.innerHTML = `
+      <a href="https://erievitalsigns-eriecopa.hub.arcgis.com/" class="mobile-nav-item" style="color: #2563eb;">
+        <i data-lucide="home"></i>
+        <span>Home</span>
+      </a>
+    ` + categories.map(cat => {
+      const id = slug(cat);
+      const icon = iconForCategory(cat);
+      return `
+        <a href="#${id}" class="mobile-nav-item">
+          <i data-lucide="${icon}"></i>
+          <span>${cat.length > 8 ? cat.substring(0, 7) + '.' : cat}</span>
+        </a>
+      `;
+    }).join("");
+
+    // KPI card rules
+    const isNoCompareIndicator = (name) =>
+      String(name || "").toLowerCase().includes("travel spending per household");
+
+    const cardHTML = (cat, r) => {
+      const name = r["Indicator Name"] || "Indicator";
+      const unit = r["Unit / Description"] || "";
+
+      const pastRaw = r["Past year Value"];
+      const currRaw = r["Current Year value"];
+
+      const pastYear = r["Past Year(s)"] || "—";
+      const currYear = r["Current Year"] || "—";
+
+      const past = parseNumber(pastRaw);
+      const curr = parseNumber(currRaw);
+
+      const acc = CAT_ACCENTS[cat] || CAT_ACCENTS.Other;
+
+      const isNoCompare = isNoCompareIndicator(name);
+      const effectiveValue = (isNoCompare && curr === null) ? past : curr;
+      const effectiveYear  = (isNoCompare && curr === null) ? pastYear : currYear;
+
+      const hasValue = effectiveValue !== null;
+
+      let currentText = hasValue ? fmt(effectiveValue, unit) : "TBD";
+      if (looksUSD(unit) && hasValue) currentText = `$${currentText}`;
+      if (looksMillion(unit) && hasValue) currentText = `${currentText}M`;
+      if (looksPct(unit, String(effectiveValue)) && hasValue && !looksUSD(unit) && !looksMillion(unit)) currentText = `${currentText}%`;
+
+      const yearLabel = hasValue ? `Current (${effectiveYear})` : `Current (TBD)`;
+
+      let yoy = badge("miss", "Missing");
+      if (isNoCompare) {
+        yoy = badge("none", "No compare");
+      } else if (curr !== null && past !== null && past !== 0) {
+        const pct = ((curr - past) / Math.abs(past)) * 100;
+        const type = pct > 0 ? "up" : pct < 0 ? "down" : "flat";
+        const pctText = `${pct > 0 ? "+" : pct < 0 ? "−" : ""}${fmt(Math.abs(pct), "%")}%`;
+        yoy = badge(type, `${pct > 0 ? "↑" : pct < 0 ? "↓" : "→"} ${pctText}`);
+      } else if (curr !== null && past !== null && past === 0) {
+        yoy = badge("flat", "—");
+      } else if (curr !== null && past === null) {
+        yoy = badge("flat", "—");
+      }
+
+      return `
+        <article class="card card-inner">
+          <div class="glow" style="background:${acc.glow};"></div>
+
+          <div class="flex items-start justify-between gap-3 relative">
+            <div class="flex gap-3 sm:gap-4 min-w-0 flex-1">
+              <div class="accent mt-1 h-8 sm:h-10" style="background:${acc.grad};"></div>
+              <div class="min-w-0 flex-1">
+                <p class="kpi-category font-extrabold text-slate-600 uppercase tracking-widest">${cat}</p>
+                <h3 class="mt-1.5 sm:mt-2 kpi-title tracking-tight text-slate-900 leading-tight">${name}</h3>
+                <p class="mt-1.5 sm:mt-2 kpi-unit font-semibold text-slate-600 truncate">${unit || "&nbsp;"}</p>
+              </div>
+            </div>
+            <div class="shrink-0">${yoy}</div>
+          </div>
+
+          <div class="mt-4 sm:mt-6 relative">
+            <div class="kpi-year-label font-extrabold text-slate-500 uppercase tracking-widest">${yearLabel}</div>
+            <div class="mt-1.5 sm:mt-2 kpi-value ${hasValue ? "text-slate-900" : "text-amber-700"}">
+              ${currentText}
+            </div>
+          </div>
+        </article>
+      `;
+    };
+
+    const sectionHTML = (cat, items) => {
+      const id = slug(cat);
+      const acc = CAT_ACCENTS[cat] || CAT_ACCENTS.Other;
+
+      const cards = items.map(r => cardHTML(cat, r)).join("");
+      return `
+        <section id="${id}" class="scroll-mt-20 sm:scroll-mt-24">
+          <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4 sm:mb-6">
+            <div class="flex items-center sm:items-end gap-3">
+              <span class="section-icon shadow-sm flex-shrink-0" style="background:${acc.grad};"></span>
+              <div class="min-w-0">
+                <h2 class="section-title font-semibold tracking-tight text-slate-900">${cat}</h2>
+                <p class="mt-0.5 sm:mt-1 text-xs sm:text-sm font-semibold text-slate-600">${items.length} indicators</p>
+              </div>
+            </div>
+
+            <div class="pill px-3 sm:px-4 py-1.5 sm:py-2 text-[10px] sm:text-xs font-semibold text-slate-700 self-start sm:self-auto">
+              Current + % change
+            </div>
+          </div>
+
+          <div class="kpi-grid">
+            ${cards}
+          </div>
+        </section>
+      `;
+    };
+
+    document.getElementById("sections").innerHTML =
+      categories.map(cat => sectionHTML(cat, byCat.get(cat))).join("");
+
+    lucide.createIcons();
+  </script>
+</body>
+</html>
